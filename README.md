@@ -37,6 +37,12 @@ All programs are implemented using **Core Java concepts** and are organized day-
 
 ---
 
+## 📅 Day 4 Programs
+
+* Product Billing
+
+---
+
 ## 🧾 Assignment: Result Processing System
 
 ### 📄 Description
