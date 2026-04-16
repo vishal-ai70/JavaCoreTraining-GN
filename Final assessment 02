@@ -1,0 +1,345 @@
+//SmartCampussSystem
+//sc :Scanner
+//manager :CampusManager
+//studentIdCounter :int
+//courseIdCounter :int
+//main(args)
+//printManu()
+//addStudent()
+//addCourse()
+//enrollStudent()
+import java.util.*;
+import java.io.*;
+
+//  CUSTOM EXCEPTION 
+//invalidIutException
+//extends Exception
+class InvalidInputException extends Exception {
+    public InvalidInputException(String message) {
+        super(message);
+    }
+}
+
+// STUDENT CLASS
+//studentId :int
+//name:String
+//email:String
+//Student (id,name,email)
+//getStudentId():int
+//getStudent():String
+//getEmail():String
+//toString():String
+class Student {
+    private int studentId;
+    private String name;
+    private String email;
+
+    public Student(int studentId, String name, String email) throws InvalidInputException {
+        if (name == null || name.trim().isEmpty()) throw new InvalidInputException("Student name cannot be empty.");
+        if (email == null || !email.contains("@")) throw new InvalidInputException("Invalid email: " + email);
+        this.studentId = studentId;
+        this.name = name.trim();
+        this.email = email.trim();
+    }
+
+    public int getStudentId() { return studentId; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+
+    @Override
+    public String toString() {
+        return "Student[ID=" + studentId + ", Name=" + name + ", Email=" + email + "]";
+    }
+}
+
+//  COURSE CLASS
+//course :int
+//courseName :String
+//fee :double
+//Course(id,name,fee)
+//getCourseId() :int
+//getCourseName():String
+//getFee() :double
+//toString() :String
+class Course {
+    private int courseId;
+    private String courseName;
+    private double fee;
+
+    public Course(int courseId, String courseName, double fee) throws InvalidInputException {
+        if (courseName == null || courseName.trim().isEmpty()) throw new InvalidInputException("Course name cannot be empty.");
+        if (fee < 0) throw new InvalidInputException("Fee cannot be negative.");
+        this.courseId = courseId;
+        this.courseName = courseName.trim();
+        this.fee = fee;
+    }
+
+    public int getCourseId() { return courseId; }
+    public String getCourseName() { return courseName; }
+    public double getFee() { return fee; }
+
+    @Override
+    public String toString() {
+        return "Course[ID=" + courseId + ", Name=" + courseName + ", Fee=$" + fee + "]";
+    }
+}
+
+// ENROLLMENT CLASS 
+//student :Student
+//course :Course
+//Enrollement(student ,course)
+//getStudent() :Student
+//getCousre() :Course
+//toString() :String
+class Enrollment {
+    private Student student;
+    private Course course;
+
+    public Enrollment(Student student, Course course) {
+        this.student = student;
+        this.course = course;
+    }
+
+    public Student getStudent() { return student; }
+    public Course getCourse() { return course; }
+
+    @Override
+    public String toString() {
+        return "Enrollment[Student=" + student.getName() + ", Course=" + course.getCourseName() + "]";
+    }
+}
+
+//  ENROLLMENT PROCESSOR (THREAD) 
+//implement Runnable
+//enrollment : Enrollemnt
+//Enrollmentprocessor(enrollment)
+//run() :void
+class EnrollmentProcessor implements Runnable {
+    private Enrollment enrollment;
+
+    public EnrollmentProcessor(Enrollment enrollment) {
+        this.enrollment = enrollment;
+    }
+
+    @Override
+    public void run() {
+        System.out.println("[Thread: " + Thread.currentThread().getName() + "] Processing: " + enrollment);
+        try {
+            Thread.sleep(1000); // Simulate processing delay
+        } catch (InterruptedException e) {
+            System.out.println("Processing interrupted.");
+        }
+        System.out.println("[Thread: " + Thread.currentThread().getName() + "] Done processing: " + enrollment);
+    }
+}
+
+//  CAMPUS MANAGER 
+//student:HashMap<Integer,Student>
+//course :HashMao<Integer,Course>
+//enrollment :ArrayList<Enrillment>
+//addStudent(Student)
+//viewStudents()
+//addCourse(Course)
+//enrollStudent(sid,cid)
+//viewEnrollment()
+//processEnrollement()
+//saveToFile(filename)
+//readFromFile(filename)
+class CampusManager {
+    private HashMap<Integer, Student> students = new HashMap<>();
+    private HashMap<Integer, Course> courses = new HashMap<>();
+    private ArrayList<Enrollment> enrollments = new ArrayList<>();
+
+    // Student Management 
+    public void addStudent(Student s) {
+        if (students.containsKey(s.getStudentId())) {
+            System.out.println("Student ID " + s.getStudentId() + " already exists.");
+            return;
+        }
+        students.put(s.getStudentId(), s);
+        System.out.println("Added: " + s);
+    }
+
+    public void viewStudents() {
+        if (students.isEmpty()) { System.out.println("No students found."); return; }
+        System.out.println(" Students ");
+        for (Student s : students.values()) System.out.println(s);
+    }
+
+    // Course Management 
+    public void addCourse(Course c) {
+        if (courses.containsKey(c.getCourseId())) {
+            System.out.println("Course ID " + c.getCourseId() + " already exists.");
+            return;
+        }
+        courses.put(c.getCourseId(), c);
+        System.out.println("Added: " + c);
+    }
+
+    //  Enrollment 
+    public void enrollStudent(int studentId, int courseId) throws InvalidInputException {
+        Student s = students.get(studentId);
+        Course c = courses.get(courseId);
+        if (s == null) throw new InvalidInputException("Student ID " + studentId + " not found.");
+        if (c == null) throw new InvalidInputException("Course ID " + courseId + " not found.");
+        for (Enrollment e : enrollments) {
+            if (e.getStudent().getStudentId() == studentId && e.getCourse().getCourseId() == courseId) {
+                System.out.println(s.getName() + " is already enrolled in " + c.getCourseName());
+                return;
+            }
+        }
+        Enrollment enrollment = new Enrollment(s, c);
+        enrollments.add(enrollment);
+        System.out.println("Enrolled: " + s.getName() + " in " + c.getCourseName());
+    }
+
+    public void viewEnrollments() {
+        if (enrollments.isEmpty()) { System.out.println("No enrollments found."); return; }
+        System.out.println("Enrollments ");
+        for (Enrollment e : enrollments) System.out.println(e);
+    }
+
+    //  Process Enrollments via Threads 
+    public void processEnrollments() {
+        if (enrollments.isEmpty()) { System.out.println("No enrollments to process."); return; }
+        System.out.println("Starting asynchronous enrollment processing...");
+        for (Enrollment e : enrollments) {
+            Thread t = new Thread(new EnrollmentProcessor(e));
+            t.start();
+        }
+    }
+
+    //  File Handling (Bonus) 
+    public void saveToFile(String filename) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(filename))) {
+            pw.println(" STUDENTS");
+            for (Student s : students.values()) pw.println(s);
+            pw.println("COURSES");
+            for (Course c : courses.values()) pw.println(c);
+            pw.println("ENROLLMENTS");
+            for (Enrollment e : enrollments) pw.println(e);
+            System.out.println("Data saved to " + filename);
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+
+    public void readFromFile(String filename) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            System.out.println(" Reading from " + filename + " ");
+            while ((line = br.readLine()) != null) System.out.println(line);
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+        }
+    }
+}
+
+//  MAIN (MENU DRIVEN) 
+public class SmartCampusSystem {
+    static Scanner sc = new Scanner(System.in);
+    static CampusManager manager = new CampusManager();
+    static int studentIdCounter = 1;
+    static int courseIdCounter = 1;
+
+    public static void main(String[] args) {
+        System.out.println("");
+        System.out.println("  Welcome to SmartCampus System");
+        System.out.println("");
+
+        while (true) {
+            printMenu();
+            System.out.print("Enter choice: ");
+            int choice = -1;
+            try {
+                choice = Integer.parseInt(sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number.");
+                continue;
+            }
+
+            switch (choice) {
+                case 1: addStudent();
+                break;
+                case 2: addCourse();
+                break;
+                case 3: enrollStudent();
+                break;
+                case 4: manager.viewStudents(); 
+                break;
+                case 5: manager.viewEnrollments(); 
+                break;
+                case 6: manager.processEnrollments(); 
+                break;
+                case 7: manager.saveToFile("campus_data.txt"); 
+                break;
+                case 8: manager.readFromFile("campus_data.txt");
+                break;
+                case 0:
+                    System.out.println("Exiting SmartCampus. Goodbye!");
+                    sc.close();
+                    return;
+                default:
+                    System.out.println("Invalid choice. Try again.");
+            }
+        }
+    }
+
+    static void printMenu() {
+        System.out.println("\nMENU");
+        System.out.println("1. Add Student");
+        System.out.println("2. Add Course");
+        System.out.println("3. Enroll Student");
+        System.out.println("4. View Students");
+        System.out.println("5. View Enrollments");
+        System.out.println("6. Process Enrollments (Thread)");
+        System.out.println("7. Save Data to File (Bonus)");
+        System.out.println("8. Read Data from File (Bonus)");
+        System.out.println("0. Exit");
+    }
+
+    static void addStudent() {
+        try {
+            System.out.print("Enter student name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter student email: ");
+            String email = sc.nextLine();
+            Student s = new Student(studentIdCounter++, name, email);
+            manager.addStudent(s);
+        } catch (InvalidInputException e) {
+            System.out.println("Error: " + e.getMessage());
+            studentIdCounter--; // rollback counter
+        }
+    }
+
+    static void addCourse() {
+        try {
+            System.out.print("Enter course name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter course fee: ");
+            double fee = Double.parseDouble(sc.nextLine().trim());
+            Course c = new Course(courseIdCounter++, name, fee);
+            manager.addCourse(c);
+        } catch (InvalidInputException e) {
+            System.out.println("Error: " + e.getMessage());
+            courseIdCounter--;
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid fee. Please enter a number.");
+            courseIdCounter;
+        }
+    }
+
+    static void enrollStudent() {
+        try {
+            System.out.print("Enter Student ID: ");
+            int sid = Integer.parseInt(sc.nextLine().trim());
+            System.out.print("Enter Course ID: ");
+            int cid = Integer.parseInt(sc.nextLine().trim());
+            manager.enrollStudent(sid, cid);
+        } catch (InvalidInputException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid ID. Please enter a number.");
+        }
+    }
+}
